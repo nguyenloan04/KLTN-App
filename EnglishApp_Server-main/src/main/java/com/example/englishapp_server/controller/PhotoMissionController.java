@@ -2,6 +2,7 @@ package com.example.englishapp_server.controller;
 
 import com.example.englishapp_server.document.PhotoMissionLog;
 import com.example.englishapp_server.repository.mongo.PhotoMissionLogRepository;
+import com.example.englishapp_server.service.CaptionTranslationService;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +17,20 @@ import java.util.UUID;
 public class PhotoMissionController {
 
     private final PhotoMissionLogRepository logRepository;
+    private final CaptionTranslationService translationService;
 
     @Autowired
-    public PhotoMissionController(PhotoMissionLogRepository logRepository) {
+    public PhotoMissionController(PhotoMissionLogRepository logRepository,
+                                  com.example.englishapp_server.service.CaptionTranslationService translationService) {
         this.logRepository = logRepository;
+        this.translationService = translationService;
+    }
+
+    @PostMapping("/translate")
+    public ResponseEntity<String> translateCaption(@RequestBody java.util.Map<String, String> request) {
+        String caption = request.get("caption");
+        String translated = translationService.translateCaption(caption);
+        return ResponseEntity.ok(translated);
     }
 
     @PostMapping("/save")

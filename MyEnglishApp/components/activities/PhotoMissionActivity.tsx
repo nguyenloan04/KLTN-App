@@ -9,7 +9,7 @@ import { ActionButton } from '@/components/ui/ActionButton';
 import { Theme } from '@/constants/Theme';
 import { createImageCaption } from '@/services/imageCaptionService';
 import { getUploadSignature, uploadToCloudinary } from '@/services/uploadService';
-import { savePhotoMissionLog } from '@/services/photoMissionService';
+import { savePhotoMissionLog, translatePhotoCaption } from '@/services/photoMissionService';
 import { CaptionResult } from '@/types/learning';
 import { photoMissionStyles as styles } from '@/styles/photoMissionStyles';
 
@@ -18,6 +18,8 @@ type Props = { onComplete?: () => void };
 export function PhotoMissionActivity({ onComplete }: Props) {
   const [uri, setUri] = useState<string>();
   const [caption, setCaption] = useState<CaptionResult>();
+  const [translatedCaption, setTranslatedCaption] = useState<string>();
+  const [isTranslating, setIsTranslating] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [saveModalVisible, setSaveModalVisible] = useState(false);
@@ -39,6 +41,7 @@ export function PhotoMissionActivity({ onComplete }: Props) {
     if (!result.canceled) {
       setUri(result.assets[0].uri);
       setCaption(undefined);
+      setTranslatedCaption(undefined);
     }
   };
 
@@ -52,6 +55,19 @@ export function PhotoMissionActivity({ onComplete }: Props) {
       Alert.alert('Chưa nhận diện được', 'Thử lại với ảnh rõ và đủ sáng hơn nhé.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTranslate = async () => {
+    if (!caption || translatedCaption) return;
+    setIsTranslating(true);
+    try {
+      const translation = await translatePhotoCaption(caption.caption);
+      setTranslatedCaption(translation);
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể dịch caption lúc này.');
+    } finally {
+      setIsTranslating(false);
     }
   };
 
@@ -106,11 +122,27 @@ export function PhotoMissionActivity({ onComplete }: Props) {
       <Pressable style={styles.listenCaption} onPress={() => Speech.speak(caption.caption, { language: 'en-US', rate: 0.75 })}>
         <MaterialCommunityIcons name="volume-high" size={22} color={Theme.colors.blueDark} />
       </Pressable>
+      <Pressable style={styles.translateCaptionBtn} onPress={handleTranslate} disabled={isTranslating || !!translatedCaption}>
+        {isTranslating ? (
+          <ActivityIndicator size="small" color={Theme.colors.coralDark} />
+        ) : (
+          <MaterialCommunityIcons name="translate" size={22} color={translatedCaption ? Theme.colors.muted : Theme.colors.coralDark} />
+        )}
+        <Text style={[styles.translateCaptionText, translatedCaption && { color: Theme.colors.muted }]}>
+          {translatedCaption ? 'Đã dịch' : 'Xem bản dịch'}
+        </Text>
+      </Pressable>
       <Pressable style={styles.saveCaption} onPress={openSaveModal}>
         <MaterialCommunityIcons name="content-save" size={22} color={Theme.colors.violet} />
         <Text style={styles.saveCaptionText}>Lưu thẻ bài</Text>
       </Pressable>
     </View>
+
+    {translatedCaption && (
+      <View style={styles.translatedContainer}>
+        <Text style={styles.translatedText}>{translatedCaption}</Text>
+      </View>
+    )}
 
     <ActionButton label={onComplete ? 'Đã đọc xong' : 'Thử ảnh khác'} icon={onComplete ? 'check' : 'camera-retake'} onPress={() => onComplete ? onComplete() : setCaption(undefined)} />
 

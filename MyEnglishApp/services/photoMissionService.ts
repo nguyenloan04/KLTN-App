@@ -53,3 +53,22 @@ export const getPhotoMissionLogs = async (): Promise<PhotoMissionLog[]> => {
 
   return response.json();
 };
+
+export const translatePhotoCaption = async (caption: string): Promise<string> => {
+  const token = await AsyncStorage.getItem('userToken');
+  
+  const response = await fetch(`${BASE_URL}/learner/photo-mission/translate`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ caption }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to translate photo caption');
+  }
+
+  return response.text();
+};
