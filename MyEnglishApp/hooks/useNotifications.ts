@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { DeviceEventEmitter } from 'react-native';
+import { DeviceEventEmitter, AppState, AppStateStatus } from 'react-native';
 import { request } from '@/services/apiClient';
 
 export interface Notification {
@@ -81,10 +81,23 @@ export function useNotifications() {
       fetchUnreadCount();
     });
 
+    const pushSubscription = DeviceEventEmitter.addListener('notificationReceived', () => {
+      fetchUnreadCount();
+      fetchNotifications(true);
+    });
+
+    const appStateSubscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        fetchUnreadCount();
+      }
+    });
+
     return () => {
       subscription.remove();
+      pushSubscription.remove();
+      appStateSubscription.remove();
     };
-  }, [fetchUnreadCount]);
+  }, [fetchUnreadCount, fetchNotifications]);
 
   return {
     notifications,
